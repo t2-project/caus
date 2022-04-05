@@ -1,20 +1,22 @@
 import math
 class CAUS:
 
-# vars for parameterization of elasticity
+# vars for parameterization of elasticity, commented out in order to be instance variables instead of class variables
+# in order to not have side effect regarding multiple mutable objects
 # elastic capacity: float
-elasticityCapacity = 0.0
+#elasticityCapacity = 0.0
 # elastic min replicas: int or None
-elasticityMinReplicas = None
+#elasticityMinReplicas = None
 # elastic max replicas: int or None
-elasticityMaxReplicas = None
+#elasticityMaxReplicas = None
 # elastic initial buffer: int
-elasticityBufferInitial = 0
+#elasticityBufferInitial = 0
 # elastic buffered replicas: int
-elasticityBufferedReplicas = 0
+#elasticityBufferedReplicas = 0
 # elastic buffer threshold: float
-elasticityBufferThreshold = 70.0
+#elasticityBufferThreshold = 70.0
 
+#TODO  push elasticity stuff to own class?
 
     def __init__(self, elasticityCapacity=0.0, elasticityMinReplicas=None, elasticityMaxReplicas=None, elasticityBufferInitial=0,elasticityBufferedReplicas=0,elasticityBufferThreshold=70.0):
         self.elasticityCapacity = elasticityCapacity
