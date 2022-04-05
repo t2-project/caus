@@ -6,4 +6,4 @@ kuberentes python client: https://github.com/kubernetes-client/python
 install with 'pip install kubernetes' onto machine or into a fitting virtual env
 
 Q-Learning framework for python
-pup install pyqlearning
+pip install pyqlearning
