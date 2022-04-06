@@ -23,7 +23,7 @@ class CAUS:
         self.elasticityMinReplicas = elasticityMinReplicas
         self.elasticityMaxReplicas = elasticityMaxReplicas
         self.elasticityBufferInitial = elasticityBufferInitial
-        self.elasticityBufferReplicas = elasticityBufferReplicas
+        self.elasticityBufferedReplicas = elasticityBufferedReplicas
         self.elasticityBufferThreshold = elasticityBufferThreshold
 
 
@@ -39,7 +39,7 @@ class CAUS:
 
         #if the usage is touching the buffer check how much
         if usage > 1:
-            difference = publishingRate - ((currentReplicas - currentBuffer) * currentPerf
+            difference = publishingRate - ((currentReplicas - currentBuffer) * currentPerf)
             bufferUsage = difference / (currentBuffer * currentPerf)
             if bufferUsage > bufferThresh:
                 return currentBuffer+1
@@ -57,7 +57,7 @@ class CAUS:
     # - current number of replicas allocated
     # - the maximum capacity if the workload+buffer exceeds the limit
     # The logic behind the controller
-    def calcReplicas(publishingRate, currentReplicas)
+    def calcReplicas(publishingRate, currentReplicas):
         # minimum capacity
         if publishingRate < elasticityCapacity:
             minReplicas = 1
