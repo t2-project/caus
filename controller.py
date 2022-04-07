@@ -4,7 +4,11 @@ from kubernetes import client, config
 
 print("Load kube config")
 os.environ['KUBECONFIG'] = './k8s-cluster3-admin.conf'
-config.load_kube_config()
+#try:
+#    config.load_incluster_config()
+#except config.ConfigException:
+#    config.load_kube_config()
+config.load_kube_config(config_file='k8s-cluster3-admin.conf')
 
 #list all pods / test code
 v1 = client.CoreV1Api()
