@@ -1,7 +1,9 @@
+import os
 from caus import CAUS
 from kubernetes import client, config
 
-print("Loading kube config")
+print("Load kube config")
+os.environ['KUBECONFIG'] = './k8s-cluster3-admin.conf'
 config.load_kube_config()
 
 #list all pods / test code
