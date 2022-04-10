@@ -123,12 +123,10 @@ def list_pods(api):
 
 def main():
     print("Load kube config")
-    #os.environ['KUBECONFIG'] = './k8s-cluster3-admin.conf'
-    #try:
-    #    config.load_incluster_config()
-    #except config.ConfigException:
-    #    config.load_kube_config()
-    config.load_kube_config(config_file='k8s-cluster3-admin.conf')
+    try:
+        config.load_incluster_config()
+    except config.ConfigException:
+        config.load_kube_config(config_file='k8s-cluster3-admin.conf')
 
     #get core and apps api
     core_api = client.CoreV1Api()
