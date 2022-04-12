@@ -18,7 +18,7 @@ class CAUS:
 
 #TODO  push elasticity stuff to own class?
 
-    def __init__(self, elasticityCapacity=0.0, elasticityMinReplicas=None, elasticityMaxReplicas=None, elasticityBufferInitial=0,elasticityBufferedReplicas=0,elasticityBufferThreshold=70.0):
+    def __init__(self, elasticityCapacity=10.0, elasticityMinReplicas=None, elasticityMaxReplicas=None, elasticityBufferInitial=0,elasticityBufferedReplicas=0,elasticityBufferThreshold=70.0):
         self.elasticityCapacity = elasticityCapacity
         self.elasticityMinReplicas = elasticityMinReplicas
         self.elasticityMaxReplicas = elasticityMaxReplicas
@@ -33,7 +33,7 @@ class CAUS:
     # currentBuffer             -  this is the current buffer size
     # currentPerf               -  this is the performance metric
     # bufferThreshold           -  the threshold to increase the buffer size
-    def adjustBufferAmount(publishingRate, currentReplicas, currentBuffer, currentPerf,bufferThreshold,initialBuffer):
+    def adjustBufferAmount(self, publishingRate, currentReplicas, currentBuffer, currentPerf,bufferThreshold,initialBuffer):
         usage = publishingRate/((currentReplicas - currentBuffer)*currentPerf)
         bufferThresh = bufferThreshold / 100.0
 
@@ -49,7 +49,7 @@ class CAUS:
         return currentBuffer
 
     # Baseworkload calculates the base work load needed to cope with current publishing rate calculation methods
-    def baseWorkload(publishingRate, currentPerf):
+    def calcBaseWorkload(self,publishingRate, currentPerf):
         return math.ceil(publishingRate / currentPerf)
 
     # CalcReplicas for the given publishing Rate it will either return:
@@ -57,28 +57,28 @@ class CAUS:
     # - current number of replicas allocated
     # - the maximum capacity if the workload+buffer exceeds the limit
     # The logic behind the controller
-    def calcReplicas(publishingRate, currentReplicas):
+    def calcReplicas(self, publishingRate, currentReplicas):
         # minimum capacity
-        if publishingRate < elasticityCapacity:
+        if publishingRate < self.elasticityCapacity:
             minReplicas = 1
-            if elasticityMinReplicas != 0 and elasticityMinReplicas != None:
+            if self.elasticityMinReplicas != 0 and self.elasticityMinReplicas != None:
                 minReplicas = elasticityMinReplicas
-            return minReplicas + elasticityBufferInitial, elasticityBufferInitial
+            return minReplicas + self.elasticityBufferInitial, self.elasticityBufferInitial
 
         # bufferForCalc
-        if elasticityBufferedReplicas == 0:
-            bufferForCalc = elasticityBufferInitial
+        if self.elasticityBufferedReplicas == 0:
+            bufferForCalc = self.elasticityBufferInitial
         else:
-            bufferForCalc = elasticityBufferedReplicas
+            bufferForCalc = self.elasticityBufferedReplicas
 
         # Current capacity
-        baseWorkload = baseWorkload(publishingRate, elasticityCapacity)
+        baseWorkload = self.calcBaseWorkload(publishingRate, self.elasticityCapacity)
         # adjust anticipation
-        bufferSize = adjustBufferAmount(publishingRate, currentReplicas, bufferForCalc, elasticityCapacity, elasticityBufferThreshold, elasticityBufferInitial)
+        bufferSize = self.adjustBufferAmount(publishingRate, currentReplicas, bufferForCalc, self.elasticityCapacity, self.elasticityBufferThreshold, self.elasticityBufferInitial)
         totalReplicas = baseWorkload + bufferSize
 
         # maximum capacity
-        if totalReplicas > elasticityMaxReplicas:
-            totalReplicas = elasticityMaxReplicas
-            bufferSize = elasticityBufferInitial
+        if self.elasticityMaxReplicas == None or totalReplicas > self.elasticityMaxReplicas:
+            totalReplicas = self.elasticityMaxReplicas
+            bufferSize = self.elasticityBufferInitial
         return totalReplicas, bufferSize
