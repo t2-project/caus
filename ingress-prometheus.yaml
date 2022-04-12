@@ -2,14 +2,13 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: prometheus-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   ingressClassName: nginx
   rules:
-  - http:
+  - host: "prometheus.master.zilchms.de"
+    http:
       paths:
-      - path: /prometheus(/|$)(.*)
+      - path: /
         pathType: Prefix
         backend:
           service:
