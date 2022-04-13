@@ -1,4 +1,5 @@
 import math
+from elasticity import elasticity
 class CAUS:
 
 # vars for parameterization of elasticity, commented out in order to be instance variables instead of class variables
@@ -18,14 +19,8 @@ class CAUS:
 
 #TODO  push elasticity stuff to own class?
 
-    def __init__(self, elasticityCapacity=10.0, elasticityMinReplicas=None, elasticityMaxReplicas=None, elasticityBufferInitial=0,elasticityBufferedReplicas=0,elasticityBufferThreshold=70.0):
-        self.elasticityCapacity = elasticityCapacity
-        self.elasticityMinReplicas = elasticityMinReplicas
-        self.elasticityMaxReplicas = elasticityMaxReplicas
-        self.elasticityBufferInitial = elasticityBufferInitial
-        self.elasticityBufferedReplicas = elasticityBufferedReplicas
-        self.elasticityBufferThreshold = elasticityBufferThreshold
-
+    def __init__(self, elasticity):
+        self.elasticity = elasticity
 
     # AdjustBufferAmount adjusts the buffer size depending on the current publishing rate
     # publishingRate            -  the measured publishing rate
@@ -59,26 +54,26 @@ class CAUS:
     # The logic behind the controller
     def calcReplicas(self, publishingRate, currentReplicas):
         # minimum capacity
-        if publishingRate < self.elasticityCapacity:
+        if publishingRate < self.elasticity.elasticityCapacity:
             minReplicas = 1
-            if self.elasticityMinReplicas != 0 and self.elasticityMinReplicas != None:
-                minReplicas = elasticityMinReplicas
-            return minReplicas + self.elasticityBufferInitial, self.elasticityBufferInitial
+            if self.elasticity.elasticityMinReplicas != 0 and self.elasticity.elasticityMinReplicas != None:
+                minReplicas = self.elasticity.elasticityMinReplicas
+            return minReplicas + self.elasticity.elasticityBufferInitial, self.elasticity.elasticityBufferInitial
 
         # bufferForCalc
-        if self.elasticityBufferedReplicas == 0:
-            bufferForCalc = self.elasticityBufferInitial
+        if self.elasticity.elasticityBufferedReplicas == 0:
+            bufferForCalc = self.elasticity.elasticityBufferInitial
         else:
-            bufferForCalc = self.elasticityBufferedReplicas
+            bufferForCalc = self.elasticity.elasticityBufferedReplicas
 
         # Current capacity
-        baseWorkload = self.calcBaseWorkload(publishingRate, self.elasticityCapacity)
+        baseWorkload = self.calcBaseWorkload(publishingRate, self.elasticity.elasticityCapacity)
         # adjust anticipation
-        bufferSize = self.adjustBufferAmount(publishingRate, currentReplicas, bufferForCalc, self.elasticityCapacity, self.elasticityBufferThreshold, self.elasticityBufferInitial)
+        bufferSize = self.adjustBufferAmount(publishingRate, currentReplicas, bufferForCalc, self.elasticity.elasticityCapacity, self.elasticity.elasticityBufferThreshold, self.elasticity.elasticityBufferInitial)
         totalReplicas = baseWorkload + bufferSize
 
         # maximum capacity
-        if self.elasticityMaxReplicas == None or totalReplicas > self.elasticityMaxReplicas:
-            totalReplicas = self.elasticityMaxReplicas
-            bufferSize = self.elasticityBufferInitial
+        if self.elasticity.elasticityMaxReplicas == None or totalReplicas > self.elasticity.elasticityMaxReplicas:
+            totalReplicas = self.elasticity.elasticityMaxReplicas
+            bufferSize = self.elasticity.elasticityBufferInitial
         return totalReplicas, bufferSize
