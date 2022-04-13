@@ -1,7 +1,7 @@
 import os
 from caus import CAUS
 from kubernetes import client, config
-
+from elasticity import elasticity
 
 DEPLOYMENT_NAME = "nginx-deployment"
 
@@ -29,7 +29,7 @@ def create_deployment_object_from_file(fullpath: str=""):
 
         # Create the specification of deployment
         spec = client.V1DeploymentSpec(
-            replicas=3, template=template, selector={
+            replicas=2, template=template, selector={
                 "matchLabels":
                 {"app": "nginx"}})
 
@@ -133,9 +133,13 @@ def list_pods(api):
     for i in ret.items:
         print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
 
-def create_changed_deployment_specs_based_on_scaling_object(deployment, scalingobject):
-    print(scalingobject.elasticityCapacity)
-    print(scalingobject.calcReplicas(30.0,deployment.spec.replicas))
+def scale_deployment_object(deployment, scalingobject, elasticityobject, publishingRate):
+    #print(scalingobject.elasticityCapacity)
+    desiredReplicas, bufferedReplicas = scalingobject.calcReplicas(publishingRate,deployment.spec.replicas)
+    print("Computed desired replicas: ", desiredReplicas, " and buffered: ", bufferedReplicas)
+    #update elasticity spec of caus
+    deployment.spec.replicas = desiredReplicas
+    elasticityobject.elasticityBufferedReplicas = bufferedReplicas
     return deployment
 
 def main():
@@ -155,26 +159,24 @@ def main():
     create_deployment(apis_api, deployment)
 
     #TODO setup prometheus (monitoring and api interface)
-    #setup scaling method, e.g.: CAUS,ML-CAUS and others
-    myCaus = CAUS()
-# changing replicas in spec part of deployment
-#    spec = deployment.spec
-#    spec.replicas = 4
-#    print(spec)
-#    print(deployment.spec)
-#
-# other useful code
-#    update_deployment(apis_api, deployment)
-#    delete_deployment(apis_api)
-#    list_pods(core_api)
+    
+
+    #setup elasticity; TODO do so from config file
+    myElasticity = elasticity(elasticityCapacity=8, elasticityMinReplicas=1, elasticityMaxReplicas=10, elasticityBufferThreshold=50.0,elasticityBufferInitial=1, elasticityBufferedReplicas=1)
+    #setup scaling method, e.g: CAUS, ML-CAUS or others
+    myCaus = CAUS(myElasticity)
 
     #check initial spec
     print("start replicas: " + str(deployment.spec.replicas))
+    print()
 
-    #update loop
-    deployment = create_changed_deployment_specs_based_on_scaling_object(deployment, myCaus)
-    #update_deployment(apis_api, deployment)
-    print("updated replicas: " + str(deployment.spec.replicas))
+    #TODO update loop
+    #while True:
+    #    publishingRate = x
+    #    deployment = scale_deployment_object(deployment, myCaus, myElasticity, publishingRate)
+    #    update_deployment(apis_api, deployment)
+    #    print("updated replicas: " + str(deployment.spec.replicas))
+    #    print()
 
 if __name__ == "__main__":
     main()
