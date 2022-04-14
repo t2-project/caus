@@ -2,7 +2,7 @@ import os
 from caus import CAUS
 from kubernetes import client, config
 from elasticity import elasticity
-
+from prometheus_client import prometheusMonitor
 DEPLOYMENT_NAME = "nginx-deployment"
 
 # Creates an object from a file with the given path or creates default object
@@ -159,7 +159,7 @@ def main():
     create_deployment(apis_api, deployment)
 
     #TODO setup prometheus (monitoring and api interface)
-    
+    myMonitor = prometheusMonitor()
 
     #setup elasticity; TODO do so from config file
     myElasticity = elasticity(elasticityCapacity=8, elasticityMinReplicas=1, elasticityMaxReplicas=10, elasticityBufferThreshold=50.0,elasticityBufferInitial=1, elasticityBufferedReplicas=1)
