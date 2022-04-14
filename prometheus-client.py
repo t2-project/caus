@@ -14,11 +14,14 @@
 
 from prometheus_api_client import PrometheusConnect, MetricSnapshotDataFrame
 
-prom = PrometheusConnect(url="http://prometheus.master.zilchms.de/", disable_ssl=True)
+class prometheusMonitor:
 
+    def __init__(self, url="http://prometheus.master.zilchms.de/"):
+        self.prom = PrometheusConnect(url=url, disable_ssl=True)
 
-metric_data = prom.get_current_metric_value(
-    metric_name='up',
-)
-metric_df = MetricSnapshotDataFrame(metric_data)
-print(metric_df.head())
+    def getMetricData():
+        metric_data = self.prom.get_current_metric_value(
+            metric_name='up',
+        )
+        metric_df = MetricSnapshotDataFrame(metric_data)
+        print(metric_df.head())
