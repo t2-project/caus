@@ -172,11 +172,14 @@ def main():
 
     #TODO update loop
     #while True:
+        #Get Monitoring Data
     #    publishingRate = x
+        #build new deployment data on scaling algorithm
     #    deployment = scale_deployment_object(deployment, myCaus, myElasticity, publishingRate)
+        #push data to database (monitoring data, scaling decision etc) maybe multiple tables
+         #push_data_to_database
+        #update deployment
     #    update_deployment(apis_api, deployment)
-    #    print("updated replicas: " + str(deployment.spec.replicas))
-    #    print()
 
 if __name__ == "__main__":
     main()
