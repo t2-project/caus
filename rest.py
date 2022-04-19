@@ -22,3 +22,7 @@ def handle_explainability():
         return 'return possible explainability methods here (depending on the machine learning method'
     else:
         return 'change explainability method to chosen method'
+
+@app.route('/explainresult')
+def return_explainability_result:
+    return 'return explainability result for chosen explainability method'
