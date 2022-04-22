@@ -1,8 +1,9 @@
 import os
+import time
 from caus import CAUS
 from kubernetes import client, config
 from elasticity import elasticity
-from prometheus_client import prometheusMonitor
+from prometheusclient import prometheusMonitor 
 DEPLOYMENT_NAME = "nginx-deployment"
 
 # Creates an object from a file with the given path or creates default object
@@ -156,7 +157,7 @@ def main():
 
     #create and deploy deploymentspecifications
     deployment = create_deployment_object_from_file()
-    create_deployment(apis_api, deployment)
+    #create_deployment(apis_api, deployment)
 
     #TODO setup prometheus (monitoring and api interface)
     myMonitor = prometheusMonitor()
@@ -171,15 +172,16 @@ def main():
     print()
 
     #TODO update loop
-    #while True:
+    while True:
         #Get Monitoring Data
-    #    publishingRate = x
+        publishingRate = float(myMonitor.getMessagesInPerSec_OneMinuteRate())
         #build new deployment data on scaling algorithm
-    #    deployment = scale_deployment_object(deployment, myCaus, myElasticity, publishingRate)
-        #push data to database (monitoring data, scaling decision etc) maybe multiple tables
+        deployment = scale_deployment_object(deployment, myCaus, myElasticity, publishingRate)
+        #push data to database (monitoring data, scaling decision etc) maybe multiple tables (possibly unneccessary)
          #push_data_to_database
         #update deployment
     #    update_deployment(apis_api, deployment)
+        time.sleep(15)
 
 if __name__ == "__main__":
     main()

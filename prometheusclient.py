@@ -19,9 +19,9 @@ class prometheusMonitor:
     def __init__(self, url="http://prometheus.master.zilchms.de/"):
         self.prom = PrometheusConnect(url=url, disable_ssl=True)
 
-    def getMetricData():
-        metric_data = self.prom.get_current_metric_value(
-            metric_name='up',
+    def getMessagesInPerSec_OneMinuteRate(self):
+        metric_data = self.prom.custom_query(
+                query='kafka_server_brokertopicmetrics_messagesinpersec_oneminuterate{service="kafka-jmx-metrics",topic="test-topic"}',
         )
-        metric_df = MetricSnapshotDataFrame(metric_data)
-        print(metric_df.head())
+        return metric_data[0]['value'][1]
+
