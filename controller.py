@@ -6,7 +6,7 @@ from elasticity import elasticity
 from prometheusclient import prometheusMonitor 
 DEPLOYMENT_NAME = "nginx-deployment"
 
-# Creates an object from a file with the given path or creates default object
+# Creates an object from a file with the given path or creates default object -> TODO
 def create_deployment_object_from_file(fullpath: str=""):
 
     #check if a path was given -> if it wasnt: create default object
@@ -72,61 +72,23 @@ def create_deployment(api, deployment):
         print("Continuing with stack deployment")
 
 def update_deployment(api, deployment):
-    # Update container image
-    deployment.spec.template.spec.containers[0].image = "nginx:1.16.0"
-
     # patch the deployment
     resp = api.patch_namespaced_deployment(
         name=DEPLOYMENT_NAME, namespace="default", body=deployment
     )
-
     print("\n[INFO] deployment's container image updated.\n")
-    print("%s\t%s\t\t\t%s\t%s" % ("NAMESPACE", "NAME", "REVISION", "IMAGE"))
-    print(
-        "%s\t\t%s\t%s\t\t%s\n"
-        % (
-            resp.metadata.namespace,
-            resp.metadata.name,
-            resp.metadata.generation,
-            resp.spec.template.spec.containers[0].image,
-        )
-    )
 
-def restart_deployment(api, deployment):
-    # update `spec.template.metadata` section
-    # to add `kubectl.kubernetes.io/restartedAt` annotation
-    deployment.spec.template.metadata.annotations = {
-        "kubectl.kubernetes.io/restartedAt": datetime.datetime.utcnow()
-        .replace(tzinfo=pytz.UTC)
-        .isoformat()
-    }
-
-    # patch the deployment
-    resp = api.patch_namespaced_deployment(
-        name=DEPLOYMENT_NAME, namespace="default", body=deployment
-    )
-
-    print("\n[INFO] deployment `nginx-deployment` restarted.\n")
-    print("%s\t\t\t%s\t%s" % ("NAME", "REVISION", "RESTARTED-AT"))
-    print(
-        "%s\t%s\t\t%s\n"
-        % (
-            resp.metadata.name,
-            resp.metadata.generation,
-            resp.spec.template.metadata.annotations,
-        )
-    )
-
-def delete_deployment(api):
-    # Delete deployment
-    resp = api.delete_namespaced_deployment(
-        name=DEPLOYMENT_NAME,
-        namespace="default",
-        body=client.V1DeleteOptions(
-            propagation_policy="Foreground", grace_period_seconds=5
-        ),
-    )
-    print("\n[INFO] deployment `nginx-deployment` deleted.")
+# maybe needed for cleanup -> saved for later
+#def delete_deployment(api):
+#    # Delete deployment
+#    resp = api.delete_namespaced_deployment(
+#        name=DEPLOYMENT_NAME,
+#        namespace="default",
+#        body=client.V1DeleteOptions(
+#            propagation_policy="Foreground", grace_period_seconds=5
+#        ),
+#    )
+#    print("\n[INFO] deployment `nginx-deployment` deleted.")
 
 def list_pods(api):
     print("Listing pods with their IPs:")
@@ -144,7 +106,7 @@ def scale_deployment_object(deployment, scalingobject, elasticityobject, publish
     return deployment
 
 def main():
-    print("Load kube config")
+    print("Load kube config...")
     try:
         config.load_incluster_config()
     except config.ConfigException:
@@ -160,10 +122,10 @@ def main():
     deployment = create_deployment_object_from_file()
     #create_deployment(apis_api, deployment)
 
-    #TODO setup prometheus (monitoring and api interface)
+    #setup prometheus (monitoring and api interface)
     myMonitor = prometheusMonitor()
 
-    #setup elasticity; TODO do so from config file
+    #setup elasticity; TODO do so from config file?
     myElasticity = elasticity(elasticityCapacity=8, elasticityMinReplicas=1, elasticityMaxReplicas=10, elasticityBufferThreshold=50.0,elasticityBufferInitial=1, elasticityBufferedReplicas=1)
     #setup scaling method, e.g: CAUS, ML-CAUS or others
     myCaus = CAUS(myElasticity)
@@ -182,6 +144,7 @@ def main():
          #push_data_to_database
         #update deployment
     #    update_deployment(apis_api, deployment)
+        #wait x seconds to rescale again
         time.sleep(15)
 
 if __name__ == "__main__":
