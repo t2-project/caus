@@ -6,13 +6,11 @@ Python implementation of CAUS
 kuberentes python client: https://github.com/kubernetes-client/python
 install with 'pip install kubernetes' onto machine or into a fitting virtual env
 
-Q-Learning framework for python
-pip install pyqlearning
-
 Prometheus Api Client
 https://pypi.org/project/prometheus-api-client/
 pip install prometheus\_api\_client
 
 ### Running Services ###
-Prometheus for Kubernetes
-RabbitMQ for Kubernetes
+Prometheus for Kubernetes; Metrics need to be accessible from inside the cluster (see monitoring module code)
+Kafka for Kubernetes
+
