@@ -111,7 +111,7 @@ def main():
         config.load_incluster_config()
     except config.ConfigException:
         print("didnt find incluster config, loading file manually...")
-        config.load_kube_config(config_file='k8s-cluster3-admin.conf')
+        config.load_kube_config(config_file=os.environ.get('KUBECONFIG','k8s-cluster3-admin.conf'))
 
     #setup deployment, prometheus monitoring, scaling method etc
     #initialize necessary apis
