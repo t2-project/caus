@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caus-deployment
+  labels:
+    app: caus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: caus
+  template:
+    metadata:
+      labels:
+        app: caus
+    spec:
+      containers:
+        - name: caus
+          image: $imagename
