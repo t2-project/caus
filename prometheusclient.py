@@ -1,7 +1,7 @@
 from prometheus_api_client import PrometheusConnect, MetricSnapshotDataFrame
 from config import get_config
 
-class prometheusMonitor:
+class PrometheusMonitor:
 
     def __init__(self, url=get_config()['prometheus']['url']):
         self.prom = PrometheusConnect(url=url, disable_ssl=True)

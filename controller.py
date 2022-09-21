@@ -4,7 +4,7 @@ from caus import SimpleCAUS
 from config import get_config
 from kubernetes import client, config as kubernetes_config
 from elasticity import Elasticity
-from prometheusclient import prometheusMonitor
+from prometheusclient import PrometheusMonitor
 
 config = get_config()
 
@@ -99,7 +99,7 @@ def main():
     core_api = client.CoreV1Api()
     apis_api = client.AppsV1Api()
     deployment = create_deployment_object_from_file()
-    myMonitor = prometheusMonitor()
+    myMonitor = PrometheusMonitor()
     myElasticity = Elasticity(
             capacity          = config.getint('elasticity', 'elastic-capacity',           fallback = 8),
             min_replicas      = config.getint('elasticity', 'elastic-min-replicas',       fallback = 1),
