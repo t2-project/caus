@@ -15,8 +15,8 @@ Alternatively, install everything using `pip install -r requirements.txt`.
 `Prometheus` for Kubernetes. Metrics must be accessible from inside the cluster.  
 `Kafka` for Kubernetes
 
-Needs a config file `config.ini` similar to the `config-example.ini`.  
-Alternatively, you can set a custom path by setting the `CAUS_CONFIG` environment variable.  
+Adapt the `config.ini` config file to your needs.  
+Alternatively, you can set a custom path for your config file by setting the `CAUS_CONFIG` environment variable.  
 Run by calling `python controller.py`.
 
 ### Kubernetes Deployment
