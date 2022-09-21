@@ -4,7 +4,7 @@ from config import get_config
 class PrometheusMonitor:
 
     def __init__(self, url=get_config()['prometheus']['url']):
-        self.prom = PrometheusConnect(url=url, disable_ssl=True)
+        self.prom = PrometheusConnect(url=url, disable_ssl=get_config().getboolean('prometheus', 'disable-ssl', fallback=True))
 
     def getMessagesInPerSec_OneMinuteRate(self):
         metric_data = self.prom.custom_query(
