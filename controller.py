@@ -1,24 +1,32 @@
 import os
 import time
-from caus import CAUS
-from kubernetes import client, config
-from elasticity import elasticity
-from prometheusclient import prometheusMonitor 
-DEPLOYMENT_NAME = "nginx-deployment"
+from caus import SimpleCAUS
+from config import get_config
+from kubernetes import client, config as kubernetes_config
+from elasticity import Elasticity
+from prometheusclient import prometheusMonitor
+
+config = get_config()
+
+DEPLOYMENT_NAME = config['deployment'].get('deployment-name', 'nginx-deployment')
 
 # Creates an object from a file with the given path or creates default object -> TODO
-def create_deployment_object_from_file(fullpath: str=""):
+def create_deployment_object_from_file(fullpath: str="") -> client.V1Deployment :
 
     #check if a path was given -> if it wasnt: create default object
     if not fullpath:
-        # Configurate default Pod template container
+        # Configure default Pod template container
         container = client.V1Container(
             name="nginx",
             image="nginx:1.15.4",
             ports=[client.V1ContainerPort(container_port=80)],
             resources=client.V1ResourceRequirements(
-                requests={"cpu": "100m", "memory": "200Mi"},
-                limits={"cpu": "500m", "memory": "500Mi"},
+                requests={
+                    "cpu": config['deployment'].get('deployment-limits-cpu-requests', "100m"),
+                    "memory": config['deployment'].get('deployment-limits-memory-requests', "200Mi")},
+                limits={
+                    "cpu": config['deployment'].get('deployment-limits-cpu-limits', "500m"),
+                    "memory": config['deployment'].get('deployment-limits-memory-limits', "500Mi")},
             ),
         )
 
@@ -43,64 +51,37 @@ def create_deployment_object_from_file(fullpath: str=""):
         )
     else:
         #TODO read deployment configuration from path (might be out of scope)
-        print("Not implemented yet")
+        pass
 
     return deployment
 
 #create deployment from a given deployment object and api
 def create_deployment(api, deployment):
-    # Create deployement
     try:
-        resp = api.create_namespaced_deployment(
-            body=deployment, namespace="default"
-        )
+        resp = api.create_namespaced_deployment(body=deployment, namespace="default")
 
-        print("\n[INFO] deployment `nginx-deployment` created.\n")
-        print("%s\t%s\t\t\t%s\t%s" % ("NAMESPACE", "NAME", "REVISION", "IMAGE"))
-        print(
-            "%s\t\t%s\t%s\t\t%s\n"
-            % (
-               resp.metadata.namespace,
-                resp.metadata.name,
-                resp.metadata.generation,
-                resp.spec.template.spec.containers[0].image,
-            )
-        )
+        print("[INFO] deployment `nginx-deployment` created.")
+        print(f"{'NAMESPACE':<20} {'NAME':<20} {'REVISION':<20} {'IMAGE':<20}")
+        print(f"{resp.metadata.namespace:<20} {resp.metadata.name:<20} {resp.metadata.generation:<20} {resp.spec.template.spec.containers[0].image:<20}")
     except Exception as ex:
         print("Creating deployment failed")
-        print("Caught exception:" + format(ex))
+        print(f"Caught exception: {format(ex)}")
         print("Continuing with stack deployment")
 
 def update_deployment(api, deployment):
-    # patch the deployment
-    resp = api.patch_namespaced_deployment(
-        name=DEPLOYMENT_NAME, namespace="default", body=deployment
-    )
-    print("\n[INFO] deployment's container image updated.\n")
+    api.patch_namespaced_deployment(name=DEPLOYMENT_NAME, namespace="default", body=deployment)
+    print("[INFO] deployment's container image updated.")
 
-# maybe needed for cleanup -> saved for later
-#def delete_deployment(api):
-#    # Delete deployment
-#    resp = api.delete_namespaced_deployment(
-#        name=DEPLOYMENT_NAME,
-#        namespace="default",
-#        body=client.V1DeleteOptions(
-#            propagation_policy="Foreground", grace_period_seconds=5
-#        ),
-#    )
-#    print("\n[INFO] deployment `nginx-deployment` deleted.")
-
+# TODO: Unused. Delete?
 def list_pods(api):
     print("Listing pods with their IPs:")
-    ret = api.list_pod_for_all_namespaces(watch=False)
-    for i in ret.items:
-        print("%s\t%s\t%s" % (i.status.pod_ip, i.metadata.namespace, i.metadata.name))
+    print(f"{'IP':<20} {'Namespace':<20} {'Name':<20}")
+    for i in api.list_pod_for_all_namespaces(watch=False).items:
+        print(f"{i.status.pod_ip:<20} {i.metadata.namespace:<20} {i.metadata.name:<20}")
 
 def scale_deployment_object(deployment, scalingobject, elasticityobject, publishingRate):
-    #print(scalingobject.elasticityCapacity)
     desiredReplicas, bufferedReplicas = scalingobject.calcReplicas(publishingRate,deployment.spec.replicas)
-    print("Computed desired replicas: ", desiredReplicas, " and buffered: ", bufferedReplicas)
-    #update elasticity spec of caus
+    print(f"Computed desired replicas: {desiredReplicas} and buffered: {bufferedReplicas}")
     deployment.spec.replicas = desiredReplicas
     elasticityobject.elasticityBufferedReplicas = bufferedReplicas
     return deployment
@@ -108,43 +89,32 @@ def scale_deployment_object(deployment, scalingobject, elasticityobject, publish
 def main():
     print("Load kube config...")
     try:
-        config.load_incluster_config()
-    except config.ConfigException:
+        kubernetes_config.load_incluster_config()
+    except kubernetes_config.ConfigException:
         print("didnt find incluster config, loading file manually...")
-        config.load_kube_config(config_file=os.environ.get('KUBECONFIG','k8s-cluster3-admin.conf'))
+        kubernetes_config.load_kube_config(config_file=os.environ.get('KUBECONFIG','k8s-cluster3-admin.conf'))
 
     #setup deployment, prometheus monitoring, scaling method etc
     #initialize necessary apis
     core_api = client.CoreV1Api()
     apis_api = client.AppsV1Api()
-
-    #create and deploy deploymentspecifications
     deployment = create_deployment_object_from_file()
-    #create_deployment(apis_api, deployment)
-
-    #setup prometheus (monitoring and api interface)
     myMonitor = prometheusMonitor()
-
-    #setup elasticity; TODO do so from config file?
-    myElasticity = elasticity(elasticityCapacity=8, elasticityMinReplicas=1, elasticityMaxReplicas=10, elasticityBufferThreshold=50.0,elasticityBufferInitial=1, elasticityBufferedReplicas=1)
+    myElasticity = Elasticity(
+            elasticityCapacity         = config.getint('elasticity', 'elastic-capacity',           fallback = 8),
+            elasticityMinReplicas      = config.getint('elasticity', 'elastic-min-replicas',       fallback = 1),
+            elasticityMaxReplicas      = config.getint('elasticity', 'elastic-max-replicas',       fallback = 10),
+            elasticityBufferThreshold  = config.getfloat('elasticity', 'elastic-buffer-threshold', fallback = 50.0),
+            elasticityBufferInitial    = config.getint('elasticity', 'elastic-initial-buffer',     fallback = 1),
+            elasticityBufferedReplicas = config.getint('elasticity', 'elastic-buffered-replicas',  fallback = 1)
+            )
     #setup scaling method, e.g: CAUS, ML-CAUS or others
-    myCaus = CAUS(myElasticity)
-
-    #check initial spec
-    print("start replicas: " + str(deployment.spec.replicas))
-    print()
+    myCaus: CAUS = SimpleCAUS(myElasticity)
+    print(f"start {deployment.spec.replicas} replicas")
 
     #TODO update loop
     while True:
-        #Get Monitoring Data
-        publishingRate = float(myMonitor.getMessagesInPerSec_OneMinuteRate())
-        #build new deployment data on scaling algorithm
-        deployment = scale_deployment_object(deployment, myCaus, myElasticity, publishingRate)
-        #push data to database (monitoring data, scaling decision etc) maybe multiple tables (possibly unneccessary)
-         #push_data_to_database
-        #update deployment
-    #    update_deployment(apis_api, deployment)
-        #wait x seconds to rescale again
+        deployment = scale_deployment_object(deployment, myCaus, myElasticity, float(myMonitor.getMessagesInPerSec_OneMinuteRate()))
         time.sleep(15)
 
 if __name__ == "__main__":
