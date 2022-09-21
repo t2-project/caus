@@ -101,12 +101,12 @@ def main():
     deployment = create_deployment_object_from_file()
     myMonitor = prometheusMonitor()
     myElasticity = Elasticity(
-            elasticityCapacity         = config.getint('elasticity', 'elastic-capacity',           fallback = 8),
-            elasticityMinReplicas      = config.getint('elasticity', 'elastic-min-replicas',       fallback = 1),
-            elasticityMaxReplicas      = config.getint('elasticity', 'elastic-max-replicas',       fallback = 10),
-            elasticityBufferThreshold  = config.getfloat('elasticity', 'elastic-buffer-threshold', fallback = 50.0),
-            elasticityBufferInitial    = config.getint('elasticity', 'elastic-initial-buffer',     fallback = 1),
-            elasticityBufferedReplicas = config.getint('elasticity', 'elastic-buffered-replicas',  fallback = 1)
+            capacity          = config.getint('elasticity', 'elastic-capacity',           fallback = 8),
+            min_replicas      = config.getint('elasticity', 'elastic-min-replicas',       fallback = 1),
+            max_replicas      = config.getint('elasticity', 'elastic-max-replicas',       fallback = 10),
+            buffer_threshold  = config.getfloat('elasticity', 'elastic-buffer-threshold', fallback = 50.0),
+            initial_buffer    = config.getint('elasticity', 'elastic-initial-buffer',     fallback = 1),
+            buffered_replicas = config.getint('elasticity', 'elastic-buffered-replicas',  fallback = 1)
             )
     #setup scaling method, e.g: CAUS, ML-CAUS or others
     myCaus: CAUS = SimpleCAUS(myElasticity)
