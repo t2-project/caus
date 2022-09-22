@@ -1,6 +1,6 @@
 import os
 import time
-from caus import SimpleCAUS
+from caus import CAUS, SimpleCAUS
 from config import get_config
 from kubernetes import client, config as kubernetes_config
 from elasticity import Elasticity
