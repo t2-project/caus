@@ -1,7 +1,8 @@
 import configparser
 import os
+from typing import Optional
 
-_config : configparser.ConfigParser = None
+_config : Optional[configparser.ConfigParser] = None
 
 def get_config() -> configparser.ConfigParser:
     """

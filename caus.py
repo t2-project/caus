@@ -1,13 +1,13 @@
 import math
 from elasticity import Elasticity
-from typing import Tuple
+from typing import Optional, Tuple
 
 class CAUS:
     """
     Base class for all kinds of custom autoscalers.
     """
 
-    def calculate_replicas(self, publishing_rate: float, current_replicas: int) -> Tuple[int, int]:
+    def calculate_replicas(self, publishing_rate: float, current_replicas: int) -> Tuple[Optional[int], int]:
         """
         Calculate the amount of desired replicas and buffered replicas given the measured publishing rate and the current amount of replicas.
         """
@@ -46,7 +46,7 @@ class SimpleCAUS(CAUS):
         """
         return math.ceil(publishing_rate / current_metric_performance)
 
-    def calculate_replicas(self, publishing_rate: float, current_replicas: int) -> Tuple[int, int]:
+    def calculate_replicas(self, publishing_rate: float, current_replicas: int) -> Tuple[Optional[int], int]:
         """
         calculate_replicas for the given publishing Rate it will either return:
         - the minimum capacity if the publishingRate is less than the capacity
