@@ -12,7 +12,7 @@ config: ConfigParser = get_config()
 DEPLOYMENT_NAME: str = config['deployment'].get('deployment-name', 'nginx-deployment')
 
 # Creates an object from a file with the given path or creates default object -> TODO
-def create_deployment_object_from_file(fullpath: str = "") -> client.V1Deployment :
+def create_deployment(fullpath: str = "") -> client.V1Deployment :
 
     #check if a path was given -> if it wasnt: create default object
     if not fullpath:
@@ -56,32 +56,6 @@ def create_deployment_object_from_file(fullpath: str = "") -> client.V1Deploymen
 
     return deployment
 
-#create deployment from a given deployment object and api
-# TODO: Unused. Delete?
-def create_deployment(api, deployment):
-    try:
-        resp = api.create_namespaced_deployment(body=deployment, namespace="default")
-
-        print("[INFO] deployment `nginx-deployment` created.")
-        print(f"{'NAMESPACE':<20} {'NAME':<20} {'REVISION':<20} {'IMAGE':<20}")
-        print(f"{resp.metadata.namespace:<20} {resp.metadata.name:<20} {resp.metadata.generation:<20} {resp.spec.template.spec.containers[0].image:<20}")
-    except Exception as ex:
-        print("Creating deployment failed")
-        print(f"Caught exception: {format(ex)}")
-        print("Continuing with stack deployment")
-
-# TODO: Unused. Delete?
-def update_deployment(api, deployment):
-    api.patch_namespaced_deployment(name=DEPLOYMENT_NAME, namespace="default", body=deployment)
-    print("[INFO] deployment's container image updated.")
-
-# TODO: Unused. Delete?
-def list_pods(api):
-    print("Listing pods with their IPs:")
-    print(f"{'IP':<20} {'Namespace':<20} {'Name':<20}")
-    for i in api.list_pod_for_all_namespaces(watch=False).items:
-        print(f"{i.status.pod_ip:<20} {i.metadata.namespace:<20} {i.metadata.name:<20}")
-
 def scale_deployment(deployment: client.V1Deployment, caus: CAUS, elasticity: Elasticity, publishing_rate: float) -> client.V1Deployment:
     desired_replicas, buffered_replicas = caus.calculate_replicas(publishing_rate, deployment.spec.replicas)
     print(f"Computed desired replicas: {desired_replicas} and buffered: {buffered_replicas}")
@@ -101,7 +75,7 @@ def main():
     #initialize necessary apis
     core_api = client.CoreV1Api()
     apis_api = client.AppsV1Api()
-    deployment: client.V1Deployment = create_deployment_object_from_file()
+    deployment: client.V1Deployment = create_deployment()
     monitor = PrometheusMonitor()
     elasticity = Elasticity(
             capacity          = config.getint('elasticity', 'elastic-capacity',           fallback = 8),
