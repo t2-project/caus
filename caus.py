@@ -4,8 +4,7 @@ from typing import Optional, Tuple
 
 
 class CAUS:
-    """ Abstract base class for all kinds of custom autoscalers.
-    """
+    """Abstract base class for all kinds of custom autoscalers."""
 
     def calculate_replicas(
         self, publishing_rate: float, current_replicas: int
