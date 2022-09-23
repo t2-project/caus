@@ -9,12 +9,12 @@ from configparser import ConfigParser
 
 config: ConfigParser = get_config()
 
-DEPLOYMENT_NAME: str = config['deployment'].get('deployment-name', 'nginx-deployment')
+DEPLOYMENT_NAME: str = config["deployment"].get("deployment-name", "nginx-deployment")
 
 # Creates an object from a file with the given path or creates default object -> TODO
-def create_deployment(fullpath: str = "") -> client.V1Deployment :
+def create_deployment(fullpath: str = "") -> client.V1Deployment:
 
-    #check if a path was given -> if it wasnt: create default object
+    # check if a path was given -> if it wasnt: create default object
     if not fullpath:
         # Configure default Pod template container
         container = client.V1Container(
@@ -23,11 +23,21 @@ def create_deployment(fullpath: str = "") -> client.V1Deployment :
             ports=[client.V1ContainerPort(container_port=80)],
             resources=client.V1ResourceRequirements(
                 requests={
-                    "cpu": config['deployment'].get('deployment-limits-cpu-requests', "100m"),
-                    "memory": config['deployment'].get('deployment-limits-memory-requests', "200Mi")},
+                    "cpu": config["deployment"].get(
+                        "deployment-limits-cpu-requests", "100m"
+                    ),
+                    "memory": config["deployment"].get(
+                        "deployment-limits-memory-requests", "200Mi"
+                    ),
+                },
                 limits={
-                    "cpu": config['deployment'].get('deployment-limits-cpu-limits', "500m"),
-                    "memory": config['deployment'].get('deployment-limits-memory-limits', "500Mi")},
+                    "cpu": config["deployment"].get(
+                        "deployment-limits-cpu-limits", "500m"
+                    ),
+                    "memory": config["deployment"].get(
+                        "deployment-limits-memory-limits", "500Mi"
+                    ),
+                },
             ),
         )
 
@@ -39,9 +49,8 @@ def create_deployment(fullpath: str = "") -> client.V1Deployment :
 
         # Create the specification of deployment
         spec = client.V1DeploymentSpec(
-            replicas=2, template=template, selector={
-                "matchLabels":
-                {"app": "nginx"}})
+            replicas=2, template=template, selector={"matchLabels": {"app": "nginx"}}
+        )
 
         # Instantiate the deployment object
         deployment = client.V1Deployment(
@@ -51,17 +60,28 @@ def create_deployment(fullpath: str = "") -> client.V1Deployment :
             spec=spec,
         )
     else:
-        #TODO read deployment configuration from path (might be out of scope)
+        # TODO read deployment configuration from path (might be out of scope)
         pass
 
     return deployment
 
-def scale_deployment(deployment: client.V1Deployment, caus: CAUS, elasticity: Elasticity, publishing_rate: float) -> client.V1Deployment:
-    desired_replicas, buffered_replicas = caus.calculate_replicas(publishing_rate, deployment.spec.replicas)
-    print(f"Computed desired replicas: {desired_replicas} and buffered: {buffered_replicas}")
+
+def scale_deployment(
+    deployment: client.V1Deployment,
+    caus: CAUS,
+    elasticity: Elasticity,
+    publishing_rate: float,
+) -> client.V1Deployment:
+    desired_replicas, buffered_replicas = caus.calculate_replicas(
+        publishing_rate, deployment.spec.replicas
+    )
+    print(
+        f"Computed desired replicas: {desired_replicas} and buffered: {buffered_replicas}"
+    )
     deployment.spec.replicas = desired_replicas
     elasticity.buffered_replicas = buffered_replicas
     return deployment
+
 
 def main():
     print("Load kube config...")
@@ -69,30 +89,44 @@ def main():
         kubernetes_config.load_incluster_config()
     except kubernetes_config.ConfigException:
         print("didnt find incluster config, loading file manually...")
-        kubernetes_config.load_kube_config(config_file=os.environ.get('KUBECONFIG','k8s-cluster3-admin.conf'))
+        kubernetes_config.load_kube_config(
+            config_file=os.environ.get("KUBECONFIG", "k8s-cluster3-admin.conf")
+        )
 
-    #setup deployment, prometheus monitoring, scaling method etc
-    #initialize necessary apis
+    # setup deployment, prometheus monitoring, scaling method etc
+    # initialize necessary apis
     core_api = client.CoreV1Api()
     apis_api = client.AppsV1Api()
     deployment: client.V1Deployment = create_deployment()
     monitor = PrometheusMonitor()
     elasticity = Elasticity(
-            capacity          = config.getint('elasticity', 'elastic-capacity',           fallback = 8),
-            min_replicas      = config.getint('elasticity', 'elastic-min-replicas',       fallback = 1),
-            max_replicas      = config.getint('elasticity', 'elastic-max-replicas',       fallback = 10),
-            buffer_threshold  = config.getfloat('elasticity', 'elastic-buffer-threshold', fallback = 50.0),
-            initial_buffer    = config.getint('elasticity', 'elastic-initial-buffer',     fallback = 1),
-            buffered_replicas = config.getint('elasticity', 'elastic-buffered-replicas',  fallback = 1)
-            )
-    #setup scaling method, e.g: CAUS, ML-CAUS or others
+        capacity=config.getint("elasticity", "elastic-capacity", fallback=8),
+        min_replicas=config.getint("elasticity", "elastic-min-replicas", fallback=1),
+        max_replicas=config.getint("elasticity", "elastic-max-replicas", fallback=10),
+        buffer_threshold=config.getfloat(
+            "elasticity", "elastic-buffer-threshold", fallback=50.0
+        ),
+        initial_buffer=config.getint(
+            "elasticity", "elastic-initial-buffer", fallback=1
+        ),
+        buffered_replicas=config.getint(
+            "elasticity", "elastic-buffered-replicas", fallback=1
+        ),
+    )
+    # setup scaling method, e.g: CAUS, ML-CAUS or others
     caus: CAUS = SimpleCAUS(elasticity)
     print(f"start {deployment.spec.replicas} replicas")
 
-    #TODO update loop
+    # TODO update loop
     while True:
-        deployment = scale_deployment(deployment, caus, elasticity, float(monitor.getMessagesInPerSec_OneMinuteRate()))
+        deployment = scale_deployment(
+            deployment,
+            caus,
+            elasticity,
+            float(monitor.getMessagesInPerSec_OneMinuteRate()),
+        )
         time.sleep(15)
+
 
 if __name__ == "__main__":
     main()

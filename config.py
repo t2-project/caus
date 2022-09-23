@@ -2,7 +2,8 @@ import configparser
 import os
 from typing import Optional
 
-_config : Optional[configparser.ConfigParser] = None
+_config: Optional[configparser.ConfigParser] = None
+
 
 def get_config() -> configparser.ConfigParser:
     """
@@ -14,5 +15,5 @@ def get_config() -> configparser.ConfigParser:
     global _config
     if _config is None:
         _config = configparser.ConfigParser()
-        _config.read(os.environ.get('CAUS_CONFIG', 'config.ini'))
+        _config.read(os.environ.get("CAUS_CONFIG", "config.ini"))
     return _config
