@@ -11,57 +11,50 @@ config: ConfigParser = get_config()
 
 DEPLOYMENT_NAME: str = config["deployment"].get("deployment-name", "nginx-deployment")
 
-# Creates an object from a file with the given path or creates default object -> TODO
-def create_deployment(fullpath: str = "") -> client.V1Deployment:
+# Creates default object
+def create_deployment() -> client.V1Deployment:
 
-    # check if a path was given -> if it wasnt: create default object
-    if not fullpath:
-        # Configure default Pod template container
-        container = client.V1Container(
-            name="nginx",
-            image="nginx:1.15.4",
-            ports=[client.V1ContainerPort(container_port=80)],
-            resources=client.V1ResourceRequirements(
-                requests={
-                    "cpu": config["deployment"].get(
-                        "deployment-limits-cpu-requests", "100m"
-                    ),
-                    "memory": config["deployment"].get(
-                        "deployment-limits-memory-requests", "200Mi"
-                    ),
-                },
-                limits={
-                    "cpu": config["deployment"].get(
-                        "deployment-limits-cpu-limits", "500m"
-                    ),
-                    "memory": config["deployment"].get(
-                        "deployment-limits-memory-limits", "500Mi"
-                    ),
-                },
-            ),
-        )
+    # Configure default Pod template container
+    container = client.V1Container(
+        name="nginx",
+        image="nginx:1.15.4",
+        ports=[client.V1ContainerPort(container_port=80)],
+        resources=client.V1ResourceRequirements(
+            requests={
+                "cpu": config["deployment"].get(
+                    "deployment-limits-cpu-requests", "100m"
+                ),
+                "memory": config["deployment"].get(
+                    "deployment-limits-memory-requests", "200Mi"
+                ),
+            },
+            limits={
+                "cpu": config["deployment"].get("deployment-limits-cpu-limits", "500m"),
+                "memory": config["deployment"].get(
+                    "deployment-limits-memory-limits", "500Mi"
+                ),
+            },
+        ),
+    )
 
-        # Create and configure a spec section
-        template = client.V1PodTemplateSpec(
-            metadata=client.V1ObjectMeta(labels={"app": "nginx"}),
-            spec=client.V1PodSpec(containers=[container]),
-        )
+    # Create and configure a spec section
+    template = client.V1PodTemplateSpec(
+        metadata=client.V1ObjectMeta(labels={"app": "nginx"}),
+        spec=client.V1PodSpec(containers=[container]),
+    )
 
-        # Create the specification of deployment
-        spec = client.V1DeploymentSpec(
-            replicas=2, template=template, selector={"matchLabels": {"app": "nginx"}}
-        )
+    # Create the specification of deployment
+    spec = client.V1DeploymentSpec(
+        replicas=2, template=template, selector={"matchLabels": {"app": "nginx"}}
+    )
 
-        # Instantiate the deployment object
-        deployment = client.V1Deployment(
-            api_version="apps/v1",
-            kind="Deployment",
-            metadata=client.V1ObjectMeta(name=DEPLOYMENT_NAME),
-            spec=spec,
-        )
-    else:
-        # TODO read deployment configuration from path (might be out of scope)
-        pass
+    # Instantiate the deployment object
+    deployment = client.V1Deployment(
+        api_version="apps/v1",
+        kind="Deployment",
+        metadata=client.V1ObjectMeta(name=DEPLOYMENT_NAME),
+        spec=spec,
+    )
 
     return deployment
 
@@ -117,6 +110,7 @@ def main():
     caus: CAUS = SimpleCAUS(elasticity)
     print(f"start {deployment.spec.replicas} replicas")
 
+    timeout: float = config.getfloat("caus", "update-rate", fallback=10.0)
     # TODO update loop
     while True:
         deployment = scale_deployment(
@@ -125,7 +119,7 @@ def main():
             elasticity,
             float(monitor.getMessagesInPerSec_OneMinuteRate()),
         )
-        time.sleep(15)
+        time.sleep(timeout)
 
 
 if __name__ == "__main__":
