@@ -3,13 +3,17 @@ Python implementation of CAUS
 
 ## Requirements
 ### Python Libraries
-kuberentes python client: <https://github.com/kubernetes-client/python>
-Install with `pip install kubernetes` onto machine or into a fitting virtual env.
+You can install everything using `pip install -r requirements.txt` (either inside a virtual env or globally).
 
-Prometheus Api Client: <https://pypi.org/project/prometheus-api-client/>
-Install with `pip install prometheus_api_client`.
+Alternatively, you can install the needed libraries manually:
 
-Alternatively, install everything using `pip install -r requirements.txt`.
+- Kuberentes Python Client
+  - homepage: <https://github.com/kubernetes-client/python>
+  - `pip install kubernetes`
+- Prometheus Api Client
+  - homepage: <https://pypi.org/project/prometheus-api-client/>
+  - `pip install prometheus_api_client`.
+
 
 ### Running Services
 `Prometheus` for Kubernetes. Metrics must be accessible from inside the cluster.  
