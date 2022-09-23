@@ -4,15 +4,20 @@ from typing import Optional, Tuple
 
 
 class CAUS:
-    """
-    Base class for all kinds of custom autoscalers.
+    """ Abstract base class for all kinds of custom autoscalers.
     """
 
     def calculate_replicas(
         self, publishing_rate: float, current_replicas: int
     ) -> Tuple[Optional[int], int]:
-        """
-        Calculate the amount of desired replicas and buffered replicas given the measured publishing rate and the current amount of replicas.
+        """Calculates the amount of desired replicas and buffered replicas given the current state.
+
+        Args:
+            publishing_rate: the measured publishing rate.
+            current_replicas: the current amount of replicas.
+
+        Returns:
+            A tuple containing both the desired replicas (might be None or an actual value), and the amount of buffered replicas (cannot be None), in that order.
         """
         pass
 
@@ -21,23 +26,29 @@ class SimpleCAUS(CAUS):
     def __init__(self, elasticity: Elasticity):
         self.elasticity = elasticity
 
-    def adjust_buffers(
+    def calculate_new_buffer_size(
         self,
         publishing_rate: float,
         current_replicas: int,
         current_buffers: int,
         current_metric_performance: float,
         buffer_threshold: float,
-        initial_buffer: int,
+        initial_buffers: int,
     ) -> int:
-        """
-        adjust_buffers returns the new buffer size depending on the current publishing rate
-        publishing_rate            -  the measured publishing rate
-        current_capacity           -  this is the total number of allocated instances
-        current_buffers            -  this is the current buffer size
-        current_metric_performance -  this is the performance metric
-        buffer_threshold           -  the threshold above which to increase the buffer size
-        initial_buffer
+        """Returns the new buffer size depending on the current state.
+
+        At the moment, the returned buffer size will be one of 'current_buffers + {-1, 0, 1}'.
+
+        Args:
+            publishing_rate: the measured publishing rate.
+            current_capacity: the total number of allocated instances.
+            current_buffers: the current buffer size.
+            current_metric_performance: the measured metric.
+            buffer_threshold: the threshold above which to increase the buffer size.
+            initial_buffers: the amount of buffers present initially.
+
+        Returns:
+            the new buffer size.
         """
         usage = publishing_rate / (
             (current_replicas - current_buffers) * current_metric_performance
@@ -54,24 +65,38 @@ class SimpleCAUS(CAUS):
             )  # either current buffers or current buffers + 1
         else:
             # if usage is less than we need to scale down the buffer
-            return max(initial_buffer, current_buffers - 1)
+            return max(initial_buffers, current_buffers - 1)
 
-    def calculate_base_workload(
-        self, publishing_rate: float, current_metric_performance: float
+    def calculate_minimum_replicas(
+        self, publishing_rate: float, capacity: float
     ) -> int:
+        """Calculates the minimal amount of replicas needed to cope with current publishing rate calculation methods.
+
+        Args:
+            publishing_rate: the measured publishing rate.
+            capacity: the capacity of this CAUS.
+
+        Returns:
+            The minimal amount of replicas needed.
         """
-        calculate_base_workload calculates the base work load needed to cope with current publishing rate calculation methods
-        """
-        return math.ceil(publishing_rate / current_metric_performance)
+        return math.ceil(publishing_rate / capacity)
 
     def calculate_replicas(
         self, publishing_rate: float, current_replicas: int
     ) -> Tuple[Optional[int], int]:
-        """
-        calculate_replicas for the given publishing Rate it will either return:
-        - the minimum capacity if the publishingRate is less than the capacity
-        - current number of replicas allocated
-        - the maximum capacity if the workload+buffer exceeds the limit
+        """Calculates the amount of desired replicas and buffered replicas given the current state.
+
+        This method currently returns
+            - the min replicas if publishing_rate < capacity.
+            - the max replicas if unbuffered replicas + buffered replicas > elasticity.max_replicas.
+            - the current number of replicas allocated otherwise.
+
+        Args:
+            publishing_rate: the measured publishing rate.
+            current_replicas: the current amount of replicas.
+
+        Returns:
+            A tuple containing both the desired replicas (might be None or an actual value), and the amount of buffered replicas (cannot be None), in that order.
         """
         # minimum capacity
         if publishing_rate < self.elasticity.capacity:
@@ -80,12 +105,12 @@ class SimpleCAUS(CAUS):
             ) + self.elasticity.initial_buffer, self.elasticity.initial_buffer
 
         # Current capacity
-        base_workload = self.calculate_base_workload(
+        base_workload = self.calculate_minimum_replicas(
             publishing_rate, self.elasticity.capacity
         )
 
         # adjust anticipation
-        buffer_size = self.adjust_buffers(
+        buffer_size = self.calculate_new_buffer_size(
             publishing_rate,
             current_replicas,
             self.elasticity.buffered_replicas or self.elasticity.initial_buffer,

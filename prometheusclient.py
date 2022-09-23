@@ -13,9 +13,10 @@ class PrometheusMonitor:
         )
 
     def getMessagesInPerSec_OneMinuteRate(self) -> str:
-        """
-        What exactly does this method do?
-        I don't really have an idea…
+        """Does something.
+
+        Returns:
+            A metric value as string?
         """
         metric_data: List = self.prom.custom_query(
             query=get_config()["prometheus"].get(

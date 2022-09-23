@@ -30,3 +30,7 @@ We used Dockerhub for saving the generated image and access it with the kubernet
 
 CAUS can then be applied using `kubectl apply -f caus-deployment.yaml`.
 
+## Developing the CAUS
+
+The CAUS currently uses [black](https://github.com/psf/black) as its formatter.
+If you followed the requirements above, it will already be downloaded and can be called using `black *.py`.
