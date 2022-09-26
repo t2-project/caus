@@ -6,65 +6,16 @@ from kubernetes import client, config as kubernetes_config
 from elasticity import Elasticity
 from prometheusclient import PrometheusMonitor
 from configparser import ConfigParser
+from debug_controller import create_deployment
 
 config: ConfigParser = get_config()
-
-DEPLOYMENT_NAME: str = config["deployment"].get("deployment-name", "nginx-deployment")
-
-# Creates default object
-def create_deployment() -> client.V1Deployment:
-
-    # Configure default Pod template container
-    container = client.V1Container(
-        name="nginx",
-        image="nginx:1.15.4",
-        ports=[client.V1ContainerPort(container_port=80)],
-        resources=client.V1ResourceRequirements(
-            requests={
-                "cpu": config["deployment"].get(
-                    "deployment-limits-cpu-requests", "100m"
-                ),
-                "memory": config["deployment"].get(
-                    "deployment-limits-memory-requests", "200Mi"
-                ),
-            },
-            limits={
-                "cpu": config["deployment"].get("deployment-limits-cpu-limits", "500m"),
-                "memory": config["deployment"].get(
-                    "deployment-limits-memory-limits", "500Mi"
-                ),
-            },
-        ),
-    )
-
-    # Create and configure a spec section
-    template = client.V1PodTemplateSpec(
-        metadata=client.V1ObjectMeta(labels={"app": "nginx"}),
-        spec=client.V1PodSpec(containers=[container]),
-    )
-
-    # Create the specification of deployment
-    spec = client.V1DeploymentSpec(
-        replicas=2, template=template, selector={"matchLabels": {"app": "nginx"}}
-    )
-
-    # Instantiate the deployment object
-    deployment = client.V1Deployment(
-        api_version="apps/v1",
-        kind="Deployment",
-        metadata=client.V1ObjectMeta(name=DEPLOYMENT_NAME),
-        spec=spec,
-    )
-
-    return deployment
-
 
 def scale_deployment(
     deployment: client.V1Deployment,
     caus: CAUS,
     elasticity: Elasticity,
     publishing_rate: float,
-) -> client.V1Deployment:
+):
     desired_replicas, buffered_replicas = caus.calculate_replicas(
         publishing_rate, deployment.spec.replicas
     )
@@ -73,7 +24,6 @@ def scale_deployment(
     )
     deployment.spec.replicas = desired_replicas
     elasticity.buffered_replicas = buffered_replicas
-    return deployment
 
 
 def main():
@@ -113,11 +63,11 @@ def main():
     timeout: float = config.getfloat("caus", "update-rate", fallback=10.0)
     # TODO update loop
     while True:
-        deployment = scale_deployment(
+        scale_deployment(
             deployment,
             caus,
             elasticity,
-            float(monitor.getMessagesInPerSec_OneMinuteRate()),
+            float(monitor.get_current_metric_value()),
         )
         time.sleep(timeout)
 
