@@ -7,12 +7,12 @@ class CAUS:
     """Abstract base class for all kinds of custom autoscalers."""
 
     def calculate_replicas(
-        self, publishing_rate: float, current_replicas: int
+        self, current_metric_performance: float, current_replicas: int
     ) -> Tuple[Optional[int], int]:
         """Calculates the amount of desired replicas and buffered replicas given the current state.
 
         Args:
-            publishing_rate: the measured publishing rate.
+            current_metric_performance: the current value of the measured metric.
             current_replicas: the current amount of replicas.
 
         Returns:
@@ -27,10 +27,10 @@ class SimpleCAUS(CAUS):
 
     def calculate_new_buffer_size(
         self,
-        publishing_rate: float,
+        current_metric_performance: float,
         current_replicas: int,
         current_buffers: int,
-        current_metric_performance: float,
+        capacity: float,
         buffer_threshold: float,
         initial_buffers: int,
     ) -> int:
@@ -39,26 +39,26 @@ class SimpleCAUS(CAUS):
         At the moment, the returned buffer size will be one of 'current_buffers + {-1, 0, 1}'.
 
         Args:
-            publishing_rate: the measured publishing rate.
+            current_metric_performance: the current value of the measured metric.
             current_capacity: the total number of allocated instances.
             current_buffers: the current buffer size.
-            current_metric_performance: the measured metric.
+            capacity: the capacity of this CAUS.
             buffer_threshold: the threshold above which to increase the buffer size.
             initial_buffers: the amount of buffers present initially.
 
         Returns:
             the new buffer size.
         """
-        usage = publishing_rate / (
-            (current_replicas - current_buffers) * current_metric_performance
+        usage = current_metric_performance / (
+            (current_replicas - current_buffers) * capacity
         )
 
         # if the usage is touching the buffer check how much
         if usage > 1:
-            difference = publishing_rate - (
-                (current_replicas - current_buffers) * current_metric_performance
+            difference = current_metric_performance - (
+                (current_replicas - current_buffers) * capacity
             )
-            buffer_usage = difference / (current_buffers * current_metric_performance)
+            buffer_usage = difference / (current_buffers * capacity)
             return current_buffers + (
                 buffer_usage > buffer_threshold / 100.0
             )  # either current buffers or current buffers + 1
@@ -67,50 +67,50 @@ class SimpleCAUS(CAUS):
             return max(initial_buffers, current_buffers - 1)
 
     def calculate_minimum_replicas(
-        self, publishing_rate: float, capacity: float
+        self, current_metric_performance: float, capacity: float
     ) -> int:
-        """Calculates the minimal amount of replicas needed to cope with current publishing rate calculation methods.
+        """Calculates the minimal amount of replicas needed to cope with the current metric performance.
 
         Args:
-            publishing_rate: the measured publishing rate.
+            current_metric_performance: the current value of the measured metric.
             capacity: the capacity of this CAUS.
 
         Returns:
             The minimal amount of replicas needed.
         """
-        return math.ceil(publishing_rate / capacity)
+        return math.ceil(current_metric_performance / capacity)
 
     def calculate_replicas(
-        self, publishing_rate: float, current_replicas: int
+        self, current_metric_performance: float, current_replicas: int
     ) -> Tuple[Optional[int], int]:
         """Calculates the amount of desired replicas and buffered replicas given the current state.
 
         This method currently returns
-            - the min replicas if publishing_rate < capacity.
+            - the min replicas if current_metric_performance < capacity.
             - the max replicas if unbuffered replicas + buffered replicas > elasticity.max_replicas.
             - the current number of replicas allocated otherwise.
 
         Args:
-            publishing_rate: the measured publishing rate.
+            current_metric_performance: the current value of the measured metric.
             current_replicas: the current amount of replicas.
 
         Returns:
             A tuple containing both the desired replicas (might be None or an actual value), and the amount of buffered replicas (cannot be None), in that order.
         """
         # minimum capacity
-        if publishing_rate < self.elasticity.capacity:
+        if current_metric_performance < self.elasticity.capacity:
             return (
                 self.elasticity.min_replicas or 1
             ) + self.elasticity.initial_buffer, self.elasticity.initial_buffer
 
         # Current capacity
         base_workload = self.calculate_minimum_replicas(
-            publishing_rate, self.elasticity.capacity
+            current_metric_performance, self.elasticity.capacity
         )
 
         # adjust anticipation
         buffer_size = self.calculate_new_buffer_size(
-            publishing_rate,
+            current_metric_performance,
             current_replicas,
             self.elasticity.buffered_replicas or self.elasticity.initial_buffer,
             self.elasticity.capacity,
