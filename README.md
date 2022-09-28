@@ -1,23 +1,37 @@
 # caus-python
 Python implementation of CAUS
 
-## Requirements ##
-### Python Libraries ###
-kuberentes python client: https://github.com/kubernetes-client/python
-install with 'pip install kubernetes' onto machine or into a fitting virtual env
+## Requirements
+### Python Libraries
+You can install everything using `pip install -r requirements.txt` (either inside a virtual env or globally).
 
-Prometheus Api Client
-https://pypi.org/project/prometheus-api-client/
-pip install prometheus\_api\_client
+Alternatively, you can install the needed libraries manually:
 
-### Running Services ###
-Prometheus for Kubernetes; Metrics need to be accessible from inside the cluster (see monitoring module code)
-Kafka for Kubernetes
+- Kuberentes Python Client
+  - homepage: <https://github.com/kubernetes-client/python>
+  - `pip install kubernetes`
+- Prometheus Api Client
+  - homepage: <https://pypi.org/project/prometheus-api-client/>
+  - `pip install prometheus_api_client`.
 
-### Kubernetes Deployment ###
-The caus-deployment.yaml has to be altered.
-$imagename has to be replace with the official name of the image you generate with the Dockerfile
+
+### Running Services
+`Prometheus` for Kubernetes. Metrics must be accessible from inside the cluster.  
+`Kafka` for Kubernetes
+
+Adapt the `config.ini` config file to your needs.  
+Alternatively, you can set a custom path for your config file by setting the `CAUS_CONFIG` environment variable.  
+Run by calling `python controller.py`.
+
+### Kubernetes Deployment
+The `caus-deployment.yaml` has to be altered.  
+`$imagename` has to be replaced with the official name of the image you generate with the Dockerfile.  
 We used Dockerhub for saving the generated image and access it with the kubernetes deployment.
 
-CAUS can then be applied with kubectl apply -f caus-deployment.yaml
+CAUS can then be applied using `kubectl apply -f caus-deployment.yaml`.
 
+## Developing the CAUS
+
+The CAUS currently uses [black](https://github.com/psf/black) as its formatter.
+If you followed the requirements above, it will already be downloaded and can be called using `black *.py`.
+For docstrings, the [google style](https://google.github.io/styleguide/pyguide.html#381-docstrings) is used.
